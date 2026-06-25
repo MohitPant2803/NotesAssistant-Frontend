@@ -1,0 +1,2865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cozy Study Assistant & Notes Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #FAF6F0; /* Soft cream background */
+            --sidebar-bg: #FFFFFF; /* Pure white sidebar */
+            --card-bg: #FFFFFF; /* Pure white cards */
+            --text-primary: #4A3F35; /* Warm dark gray for high readability */
+            --text-secondary: #8A7E72; /* Warm medium gray */
+            --text-light: #BCAF9E; /* Soft light beige */
+            
+            /* Cozy Pastel Accents */
+            --accent-peach: #E8C5C8; /* Soft warm rose/peach */
+            --accent-peach-hover: #DFB2B6;
+            --accent-sage: #C4D7B2; /* Soft cozy sage green */
+            --accent-sage-hover: #B4C9A1;
+            --accent-sand: #F4EAD4; /* Warm sand/cream secondary button */
+            --accent-sand-hover: #E9DCBF;
+            --accent-danger: #E2B6B6; /* Cozy soft red */
+            --accent-danger-hover: #D79F9F;
+            --accent-processing: #E6F0FA; /* Gentle blue for processing status */
+            --text-processing: #4A76A8;
+            
+            --shadow-soft: 0 8px 30px rgba(120, 110, 100, 0.05);
+            --shadow-medium: 0 12px 40px rgba(120, 110, 100, 0.08);
+            --border-radius-lg: 24px;
+            --border-radius-md: 16px;
+            --transition-smooth: all 0.05s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-primary);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* Sidebar: Library & File Manager */
+        .sidebar {
+            width: 320px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid rgba(138, 126, 114, 0.1);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            height: 100%;
+            z-index: 10;
+        }
+
+        .sidebar-header {
+            margin-bottom: 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            font-size: 28px;
+        }
+
+        .logo h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #4A3F35;
+            letter-spacing: -0.5px;
+        }
+
+        .notes-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .notes-section h3 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .search-box {
+            margin-bottom: 16px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(138, 126, 114, 0.15);
+            background-color: #FCFAF7;
+            border-radius: var(--border-radius-sm);
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent-peach);
+            background-color: #FFFFFF;
+            box-shadow: 0 0 0 3px rgba(232, 197, 200, 0.15);
+        }
+
+        .notes-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-right: 4px;
+        }
+
+        /* Scrollbar Styling */
+        .notes-list::-webkit-scrollbar,
+        .transcript-display::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .notes-list::-webkit-scrollbar-track,
+        .transcript-display::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .notes-list::-webkit-scrollbar-thumb,
+        .transcript-display::-webkit-scrollbar-thumb {
+            background: rgba(138, 126, 114, 0.2);
+            border-radius: 10px;
+        }
+
+        .notes-list::-webkit-scrollbar-thumb:hover,
+        .transcript-display::-webkit-scrollbar-thumb:hover {
+            background: rgba(138, 126, 114, 0.4);
+        }
+
+        .folder-item {
+            background: #FCFAF7;
+            border: 1px solid rgba(138, 126, 114, 0.08);
+            border-radius: var(--border-radius-md);
+            padding: 0;
+            overflow: hidden;
+            transition: var(--transition-smooth);
+        }
+
+        .folder-header {
+            display: flex;
+            align-items: center;
+            padding: 14px;
+            cursor: pointer;
+            gap: 10px;
+            user-select: none;
+            position: relative;
+        }
+
+        .folder-header:hover {
+            background: #FFFFFF;
+        }
+
+        .folder-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+
+        .folder-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-left: auto;
+            margin-right: 10px;
+        }
+
+        .folder-actions {
+            display: flex;
+            gap: 6px;
+            opacity: 0;
+            transition: var(--transition-smooth);
+        }
+
+        .folder-item:hover .folder-actions {
+            opacity: 1;
+        }
+
+        .folder-contents {
+            padding: 6px 14px 14px 34px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border-top: 1px dashed rgba(138, 126, 114, 0.1);
+            background-color: #FAF8F5;
+        }
+
+        .file-item {
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 6px 10px;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-item:hover {
+            background-color: #FFFFFF;
+            color: var(--text-primary);
+            box-shadow: 0 2px 6px rgba(120, 110, 100, 0.05);
+        }
+
+        .action-icon {
+            font-size: 14px;
+            padding: 6px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            background: rgba(138, 126, 114, 0.05);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+        }
+
+        .action-icon:hover {
+            background: var(--accent-sand);
+            transform: scale(1.1);
+        }
+
+        .action-icon.delete:hover {
+            background: var(--accent-danger);
+        }
+
+        .loading-notes, .empty-notes {
+            text-align: center;
+            padding: 24px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 32px;
+            height: 100%;
+            overflow: hidden;
+            gap: 24px;
+        }
+
+        /* Top Dashboard: Controller Card */
+        .controller-card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-medium);
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(138, 126, 114, 0.05);
+        }
+
+        .session-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-badge.idle {
+            background-color: #F3EFE9;
+        }
+
+        .status-badge.recording {
+            background-color: #FBEAEA;
+            color: #C07070;
+        }
+
+        .status-badge.paused {
+            background-color: #FFF6E0;
+            color: #B08D3E;
+        }
+
+        .status-badge.processing {
+            background-color: var(--accent-processing);
+            color: var(--text-processing);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--text-secondary);
+        }
+
+        .status-badge.recording .pulse-dot {
+            background-color: #D45555;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-badge.paused .pulse-dot {
+            background-color: #D4A333;
+        }
+
+        .status-badge.processing .pulse-dot {
+            background-color: var(--text-processing);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.5; }
+            100% { transform: scale(0.9); opacity: 1; }
+        }
+
+        .timer {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .control-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Buttons */
+        .btn {
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-rounded {
+            border-radius: var(--border-radius-lg);
+            padding: 12px 24px;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-sage);
+            color: #435A37;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--accent-sage-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(196, 215, 178, 0.4);
+        }
+
+        .btn-warning {
+            background-color: var(--accent-sand);
+            color: #8C733C;
+        }
+
+        .btn-warning:hover:not(:disabled) {
+            background-color: var(--accent-sand-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(244, 234, 212, 0.4);
+        }
+
+        .btn-danger {
+            background-color: var(--accent-danger);
+            color: #803D3D;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background-color: var(--accent-danger-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(226, 182, 182, 0.4);
+        }
+
+        .btn-secondary {
+            background-color: #EFECE6;
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #E5E1D9;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Transcript Display */
+        .transcript-section {
+            flex: 1;
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-medium);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(138, 126, 114, 0.05);
+        }
+
+        .section-header {
+            margin-bottom: 16px;
+        }
+
+        .section-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .helper-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .transcript-display {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid rgba(138, 126, 114, 0.08);
+            background-color: #FCFAF7;
+            border-radius: var(--border-radius-md);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            text-align: center;
+            gap: 12px;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            opacity: 0.8;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            max-width: 320px;
+            line-height: 1.5;
+        }
+
+        .live-text-content {
+            font-size: 15px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(74, 63, 53, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition-smooth);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background-color: #FFFFFF;
+            border-radius: var(--border-radius-lg);
+            box-shadow: 0 20px 60px rgba(74, 63, 53, 0.15);
+            width: 500px;
+            max-width: 90%;
+            padding: 24px;
+            transform: translateY(30px);
+            transition: var(--transition-smooth);
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-header h3 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .close-modal-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: var(--transition-smooth);
+        }
+
+        .close-modal-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }
+
+        .export-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .export-card {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-radius: var(--border-radius-md);
+            text-decoration: none;
+            border: 1px solid rgba(138, 126, 114, 0.1);
+            transition: var(--transition-smooth);
+        }
+
+        .export-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .md-export {
+            background-color: #FCFAF7;
+        }
+        .md-export:hover {
+            border-color: var(--accent-sand);
+            background-color: #FFFFFF;
+        }
+
+        .txt-export {
+            background-color: #FAF8F8;
+        }
+        .txt-export:hover {
+            border-color: var(--accent-peach);
+            background-color: #FFFFFF;
+        }
+
+        .export-icon {
+            font-size: 28px;
+            margin-right: 16px;
+        }
+
+        .export-label {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .export-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: block;
+        }
+
+        /* Input group */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(138, 126, 114, 0.15);
+            background-color: #FCFAF7;
+            border-radius: var(--border-radius-sm);
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-peach);
+            background-color: #FFFFFF;
+            box-shadow: 0 0 0 3px rgba(232, 197, 200, 0.15);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .modal-actions .btn {
+            border-radius: var(--border-radius-sm);
+            padding: 10px 20px;
+        }
+
+        /* Audio Visualizer styling */
+        .visualizer {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            height: 42px;
+            padding: 0 14px;
+            border-radius: 20px;
+            background-color: #FCFAF7;
+            border: 1px solid rgba(138, 126, 114, 0.08);
+            justify-content: center;
+            min-width: 100px;
+        }
+
+        .visualizer .bar {
+            width: 4px;
+            height: 32px;
+            background: linear-gradient(180deg, #D45555, var(--accent-peach));
+            border-radius: 2px;
+            display: inline-block;
+            transform: scaleY(0.125);
+            transform-origin: bottom;
+        }
+
+        /* Controller settings layout */
+        .controller-left {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            flex: 1;
+        }
+
+        .session-settings {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .setting-item label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .cozy-select {
+            padding: 6px 12px;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid rgba(138, 126, 114, 0.15);
+            background-color: #FCFAF7;
+            font-size: 13px;
+            color: var(--text-primary);
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .cozy-select:focus {
+            border-color: var(--accent-peach);
+            box-shadow: 0 0 0 3px rgba(232, 197, 200, 0.15);
+        }
+
+        .cozy-select:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: #F5F1E9;
+        }
+
+        /* Slider adjustments */
+        .setting-slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .cozy-slider {
+            -webkit-appearance: none;
+            width: 110px;
+            height: 6px;
+            border-radius: 3px;
+            background: #EFECE6;
+            outline: none;
+            transition: var(--transition-smooth);
+            cursor: pointer;
+        }
+
+        .cozy-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent-peach);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .cozy-slider::-webkit-slider-thumb:hover {
+            background: var(--accent-peach-hover);
+            transform: scale(1.2);
+        }
+
+        .cozy-slider:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #chunk-duration-val {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            min-width: 25px;
+        }
+        .export-card-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .modal-preview-btn:hover, .file-preview-btn:hover {
+            opacity: 1 !important;
+            transform: scale(1.15);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar: File Manager -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon" style="display: inline-flex; align-items: center; justify-content: center;">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-sage);"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                    </span>
+                    <h2>StudyNotes</h2>
+                </div>
+            </div>
+            
+            <div class="notes-section">
+                <h3>My Library</h3>
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Search notes...">
+                </div>
+                <div class="notes-list" id="notes-list">
+                    <div class="loading-notes">Loading past notes...</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Dashboard: Active Session Controller -->
+            <section class="controller-card">
+                <div class="controller-left">
+                    <div class="session-info">
+                        <div class="status-badge idle" id="status-badge">
+                            <span class="pulse-dot"></span>
+                            <span id="status-text">Ready to Record</span>
+                        </div>
+                        
+                        <!-- Real-time Audio Visualizer -->
+                        <div class="visualizer" id="visualizer" style="display: none;">
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                        </div>
+                        <div class="timer" id="session-timer">00:00</div>
+                    </div>
+                    
+                    <div class="session-settings">
+                        <input type="hidden" id="backend-url-input">
+                        
+                        <div class="setting-item">
+                            <label for="groq-key-input" style="display: inline-flex; align-items: center;">
+                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-right: 5px; flex-shrink: 0;"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                                Groq API Key:
+                            </label>
+                            <input type="password" id="groq-key-input" class="cozy-select" style="width: 210px;" placeholder="gsk_...">
+                        </div>
+                        
+                        <!-- Quota Limit Widget placed between Groq key and Chunk Interval -->
+                        <div class="setting-item" id="limit-widget" style="display: flex; align-items: center; gap: 8px;">
+                            <label style="display: inline-flex; align-items: center;">
+                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-right: 5px; flex-shrink: 0;"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                                Quota Limit:
+                            </label>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span id="limit-info" style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">—</span>
+                                <div id="limit-progress-bg" style="width: 120px; height: 5px; background: #EFECE6; border-radius: 3px; display: none; overflow: hidden; border: 1px solid rgba(138, 126, 114, 0.08);">
+                                    <div id="limit-progress-bar" style="width: 0%; height: 100%; background: var(--accent-sage); transition: width 0.3s ease;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-item" style="display: none;">
+                            <label for="chunk-duration-slider" style="display: inline-flex; align-items: center;">
+                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-right: 5px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                Chunk Interval:
+                            </label>
+                            <div class="setting-slider-container">
+                                <input type="range" id="chunk-duration-slider" class="cozy-slider" min="3" max="30" value="30">
+                                <span id="chunk-duration-val">30s</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-actions">
+                    <button id="start-btn" class="btn btn-primary btn-rounded">Start Session</button>
+                    <button id="pause-btn" class="btn btn-warning btn-rounded" disabled>Pause</button>
+                    <button id="stop-btn" class="btn btn-danger btn-rounded" disabled>Stop & Save</button>
+                </div>
+            </section>
+
+            <!-- Live Transcription Feed -->
+            <section class="transcript-section">
+                <div class="section-header">
+                    <h3>Live Transcription</h3>
+                    <div class="helper-text">Words will appear here as your browser captures and transcribes audio.</div>
+                </div>
+                
+                <div class="transcript-display" id="transcript-display">
+                    <div class="empty-state" id="empty-state">
+                        <div class="empty-icon" style="display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+                            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-sage); opacity: 0.65;"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+                        </div>
+                        <p>No recording active. Click "Start Session" and share your browser tab/system audio to begin transcribing.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Save Session Modal -->
+            <div class="modal-overlay" id="save-session-modal">
+                <div class="modal-card">
+                    <div class="modal-header">
+                        <h3>Start New Session</h3>
+                        <button class="close-modal-btn" id="close-save-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="input-group">
+                            <label for="session-name-input">Session Name:</label>
+                            <input type="text" id="session-name-input" class="form-input" placeholder="e.g. History Lecture 1">
+                        </div>
+                        <div class="modal-actions">
+                            <button id="cancel-save-btn" class="btn btn-secondary">Cancel</button>
+                            <button id="confirm-save-btn" class="btn btn-primary">Start Session</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Dialog (Visible after stopping session) -->
+            <div class="modal-overlay" id="export-modal">
+                <div class="modal-card">
+                    <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between;">
+                        <h3 style="display: flex; align-items: center; gap: 8px;">
+                            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-sage); fill: rgba(138, 171, 143, 0.15); flex-shrink: 0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            Session Saved!
+                        </h3>
+                        <button class="close-modal-btn" id="close-modal-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Your session notes have been processed. Download them directly to your computer below:</p>
+                            <div class="export-card-wrapper">
+                                <a href="#" id="download-pdf" class="export-card" style="background-color: #FAF8F8; display: flex; align-items: center; gap: 16px; flex: 1; padding-right: 50px;">
+                                    <span class="export-icon" style="margin-right: 0; display: inline-flex; align-items: center;">
+                                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #D45555; fill: rgba(212, 85, 85, 0.1);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                    </span>
+                                    <div style="display: flex; flex-direction: column;">
+                                        <span class="export-label">PDF Notes (.pdf)</span>
+                                        <span class="export-desc">Formatted printable document</span>
+                                    </div>
+                                </a>
+                                <button class="modal-preview-btn" data-type="pdf" title="Preview in browser" style="position: absolute; right: 16px; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); opacity: 0.6; padding: 8px; transition: opacity 0.1s;">
+                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary);"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </button>
+                            </div>
+                            <div class="export-card-wrapper">
+                                <a href="#" id="download-one-page-pdf" class="export-card" style="background-color: #FAF8F8; display: flex; align-items: center; gap: 16px; flex: 1; padding-right: 50px;">
+                                    <span class="export-icon" style="margin-right: 0; display: inline-flex; align-items: center;">
+                                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #E28A36; fill: rgba(226, 138, 54, 0.1);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                    </span>
+                                    <div style="display: flex; flex-direction: column;">
+                                        <span class="export-label">1-Page PDF (.pdf)</span>
+                                        <span class="export-desc">Condensed executive summary</span>
+                                    </div>
+                                </a>
+                                <button class="modal-preview-btn" data-type="pdf-onepage" title="Preview in browser" style="position: absolute; right: 16px; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); opacity: 0.6; padding: 8px; transition: opacity 0.1s;">
+                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary);"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </button>
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aesthetic Alert/Confirm Dialog Modal -->
+            <div class="modal-overlay" id="custom-dialog-modal">
+                <div class="modal-card" style="max-width: 400px; padding: 24px;">
+                    <div class="modal-header">
+                        <h3 id="dialog-title">Notice</h3>
+                        <button class="close-modal-btn" id="close-dialog-btn">&times;</button>
+                    </div>
+                    <div class="modal-body" style="padding-top: 8px;">
+                        <p id="dialog-message" style="font-size: 14px; line-height: 1.6; margin-bottom: 24px; color: var(--text-secondary);"></p>
+                        <div class="modal-actions" id="dialog-actions" style="display: flex; justify-content: flex-end; gap: 12px;">
+                            <button id="dialog-cancel-btn" class="btn btn-secondary" style="border-radius: var(--border-radius-sm); padding: 10px 20px;">Cancel</button>
+                            <button id="dialog-confirm-btn" class="btn btn-primary" style="border-radius: var(--border-radius-sm); padding: 10px 20px;">OK</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Processing/Loading Overlay -->
+            <div class="modal-overlay" id="processing-overlay">
+                <div class="modal-card" style="text-align: center; max-width: 350px; padding: 32px;">
+                    <div class="pulse-dot" style="width: 24px; height: 24px; background-color: var(--accent-sage); margin: 0 auto 16px auto; display: block; border-radius: 50%;"></div>
+                    <h3 style="margin-bottom: 8px;">🪄 AI Scribe Active</h3>
+                    <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0;">Structuring detailed study notes... Please wait a moment.</p>
+                </div>
+            </div>
+            
+            <!-- Rename Modal -->
+            <div class="modal-overlay" id="rename-modal">
+                <div class="modal-card">
+                    <div class="modal-header">
+                        <h3>Rename Note</h3>
+                        <button class="close-modal-btn" id="close-rename-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="input-group">
+                            <label for="new-filename-input">Enter new name:</label>
+                            <input type="text" id="new-filename-input" class="form-input">
+                        </div>
+                        <input type="hidden" id="old-filename-hidden">
+                        <div class="modal-actions">
+                            <button id="cancel-rename-btn" class="btn btn-secondary">Cancel</button>
+                            <button id="save-rename-btn" class="btn btn-primary">Rename</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const startBtn = document.getElementById('start-btn');
+            const pauseBtn = document.getElementById('pause-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const timerDisplay = document.getElementById('session-timer');
+            const statusBadge = document.getElementById('status-badge');
+            const statusText = document.getElementById('status-text');
+            const transcriptDisplay = document.getElementById('transcript-display');
+            const emptyState = document.getElementById('empty-state');
+            const visualizer = document.getElementById('visualizer');
+            const backendUrlInput = document.getElementById('backend-url-input');
+            const groqKeyInput = document.getElementById('groq-key-input');
+            const chunkSlider = document.getElementById('chunk-duration-slider');
+            const chunkValLabel = document.getElementById('chunk-duration-val');
+            const visualizerBars = document.querySelectorAll('.visualizer .bar');
+            
+            // Sidebar & File Manager Elements
+            const notesList = document.getElementById('notes-list');
+            const searchInput = document.getElementById('search-input');
+            
+            // Modal Elements
+            const exportModal = document.getElementById('export-modal');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const downloadPdf = document.getElementById('download-pdf');
+            const downloadOnePagePdf = document.getElementById('download-one-page-pdf');
+
+            // Save Session Modal Elements
+            const saveSessionModal = document.getElementById('save-session-modal');
+            const sessionNameInput = document.getElementById('session-name-input');
+            const confirmSaveBtn = document.getElementById('confirm-save-btn');
+            const cancelSaveBtn = document.getElementById('cancel-save-btn');
+            const closeSaveBtn = document.getElementById('close-save-btn');
+            
+            // Rename Modal Elements
+            const renameModal = document.getElementById('rename-modal');
+            const closeRenameBtn = document.getElementById('close-rename-btn');
+            const cancelRenameBtn = document.getElementById('cancel-rename-btn');
+            const saveRenameBtn = document.getElementById('save-rename-btn');
+            const newFilenameInput = document.getElementById('new-filename-input');
+            const oldFilenameHidden = document.getElementById('old-filename-hidden');
+
+            // Application State
+            let isRecording = false;
+            let isPaused = false;
+            let isSavingSession = false;
+            let activeUploads = 0;
+            
+            let audioStream = null;
+            let activeChunkRecorder = null;
+            let chunkTimeoutId = null;
+            let transcriptionText = "";
+            let currentSessionName = "";
+            let lastTextLength = 0;
+            
+            let lastRemainingRequests = null; // Tracks remaining requests for time calculation
+            let lastLimitRequests = null; // Tracks limit requests
+            let lastRemainingSeconds = null; // Tracks remaining audio seconds
+            let lastLimitSeconds = null; // Tracks total audio seconds limit
+            
+            let startTime = 0;
+            let accumulatedElapsed = 0;
+            let timerInterval = null;
+            
+            let audioContext = null;
+            let analyser = null;
+            let dataArray = null;
+            let visualizerAnimFrameId = null;
+
+            // Load saved settings
+            const savedBackendUrl = localStorage.getItem('backend_url') || 'http://localhost:10000';
+            backendUrlInput.value = savedBackendUrl;
+
+            const savedGroqKey = localStorage.getItem('groq_api_key') || '';
+            groqKeyInput.value = savedGroqKey;
+
+            // Fetch default backend URL from Vercel config endpoint if available
+            fetch('/api/config')
+                .then(res => res.json())
+                .then(config => {
+                    if (config.BACKEND_URL) {
+                        backendUrlInput.value = config.BACKEND_URL;
+                        localStorage.setItem('backend_url', config.BACKEND_URL);
+                    }
+                    checkCurrentQuota();
+                })
+                .catch(err => {
+                    console.log("No Vercel config found, using local storage.");
+                    checkCurrentQuota();
+                });
+
+            backendUrlInput.addEventListener('change', () => {
+                localStorage.setItem('backend_url', backendUrlInput.value.trim());
+                checkCurrentQuota();
+            });
+
+            groqKeyInput.addEventListener('input', () => {
+                localStorage.setItem('groq_api_key', groqKeyInput.value.trim());
+            });
+            groqKeyInput.addEventListener('change', () => {
+                checkCurrentQuota();
+            });
+
+            chunkSlider.addEventListener('input', () => {
+                chunkValLabel.textContent = `${chunkSlider.value}s`;
+                updateQuotaUI();
+            });
+
+            // Format timer (seconds -> MM:SS)
+            function formatTime(totalSeconds) {
+                const mins = Math.floor(totalSeconds / 60);
+                const secs = totalSeconds % 60;
+                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            function updateQuotaUI() {
+                const limitInfo = document.getElementById('limit-info');
+                const progressBg = document.getElementById('limit-progress-bg');
+                const progressBar = document.getElementById('limit-progress-bar');
+
+                const hasData = lastRemainingRequests !== null && lastLimitRequests !== null;
+                if (hasData) {
+                    // Prefer audio-seconds based estimate if available, else use request count
+                    let totalMinutes;
+                    if (lastRemainingSeconds !== null) {
+                        totalMinutes = Math.round(lastRemainingSeconds / 60);
+                    } else {
+                        const durationSeconds = parseInt(chunkSlider.value) || 30;
+                        totalMinutes = Math.round((lastRemainingRequests * durationSeconds) / 60);
+                    }
+
+                    let timeLeftStr = "";
+                    if (totalMinutes >= 60) {
+                        const hrs = Math.floor(totalMinutes / 60);
+                        const mins = totalMinutes % 60;
+                        timeLeftStr = mins > 0 ? `${hrs}h ${mins}m left for today` : `${hrs}h left for today`;
+                    } else if (totalMinutes > 0) {
+                        timeLeftStr = `${totalMinutes}m left for today`;
+                    } else {
+                        timeLeftStr = `quota nearly exhausted`;
+                    }
+
+                    limitInfo.textContent = `${lastRemainingRequests}/${lastLimitRequests} requests (~${timeLeftStr})`;
+                    progressBg.style.display = 'block';
+
+                    const pct = (lastRemainingRequests / lastLimitRequests) * 100;
+                    progressBar.style.width = `${pct}%`;
+
+                    if (pct < 10) {
+                        progressBar.style.backgroundColor = 'var(--accent-danger)';
+                        limitInfo.style.color = '#C07070';
+                    } else {
+                        progressBar.style.backgroundColor = 'var(--accent-sage)';
+                        limitInfo.style.color = 'var(--text-secondary)';
+                    }
+                } else {
+                    limitInfo.textContent = '—';
+                    progressBg.style.display = 'none';
+                    limitInfo.style.color = 'var(--text-secondary)';
+                }
+            }
+
+            async function checkCurrentQuota() {
+                const baseUrl = backendUrlInput.value.trim().replace(/\/$/, '');
+                if (!baseUrl) return;
+                const url = `${baseUrl}/check-quota`;
+
+                const headers = {};
+                const userKey = groqKeyInput.value.trim();
+                if (userKey) {
+                    headers['Authorization'] = `Bearer ${userKey}`;
+                }
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: headers
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.remaining_requests !== undefined && data.remaining_requests !== null) {
+                            lastRemainingRequests = data.remaining_requests;
+                        }
+                        if (data.limit_requests !== undefined && data.limit_requests !== null) {
+                            lastLimitRequests = data.limit_requests;
+                        }
+                        if (data.remaining_seconds !== undefined && data.remaining_seconds !== null) {
+                            lastRemainingSeconds = data.remaining_seconds;
+                        }
+                        if (data.limit_seconds !== undefined && data.limit_seconds !== null) {
+                            lastLimitSeconds = data.limit_seconds;
+                        }
+                        updateQuotaUI();
+                    } else {
+                        console.warn("Quota check returned non-OK status:", response.status);
+                    }
+                } catch (err) {
+                    console.warn("Could not retrieve quota:", err);
+                }
+            }
+
+            // --- LOCAL STORAGE NOTES LIBRARY ---
+            function getLibraryNotes() {
+                const notes = localStorage.getItem('study_notes_library');
+                return notes ? JSON.parse(notes) : [];
+            }
+
+            function saveLibraryNotes(notes) {
+                localStorage.setItem('study_notes_library', JSON.stringify(notes));
+            }
+
+            function loadNotesList() {
+                const notes = getLibraryNotes();
+                renderNotes(notes);
+            }
+
+            function renderNotes(notes) {
+                notesList.innerHTML = '';
+                if (notes.length === 0) {
+                    notesList.innerHTML = '<div class="empty-notes">No notes saved yet.</div>';
+                    return;
+                }
+
+                const folderClosedSVG = `<svg class="folder-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-sage); fill: rgba(138, 171, 143, 0.1);"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
+                const folderOpenSVG = `<svg class="folder-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-sage); fill: rgba(138, 171, 143, 0.25);"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><path d="M2 10h20"></path></svg>`;
+
+                notes.forEach(note => {
+                    const item = document.createElement('div');
+                    item.className = 'folder-item';
+                    item.setAttribute('data-id', note.id);
+                    
+                    item.innerHTML = `
+                        <div class="folder-header">
+                            <span class="folder-toggle" style="display: inline-flex; align-items: center; justify-content: center; margin-right: 6px;">${folderClosedSVG}</span>
+                            <span class="folder-title" title="${note.name}">${note.name}</span>
+                            <div class="folder-actions">
+                                <button class="action-icon rename-btn" data-id="${note.id}" title="Rename" style="display: inline-flex; align-items: center; justify-content: center;">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary);"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                </button>
+                                <button class="action-icon delete delete-btn" data-id="${note.id}" title="Delete" style="display: inline-flex; align-items: center; justify-content: center;">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-danger-hover);"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="folder-contents" style="display: none;">
+                            <div style="font-size: 11px; color: var(--text-secondary); padding: 4px 10px; border-bottom: 1px dashed rgba(138, 126, 114, 0.1); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                                <span style="display: inline-flex; align-items: center;">
+                                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                </span>
+                                <span>Recorded on: ${note.date}</span>
+                            </div>
+                            <div class="file-item" data-type="pdf" data-id="${note.id}" style="display: flex; align-items: center; gap: 8px; justify-content: space-between; width: 100%;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #D45555; fill: rgba(212, 85, 85, 0.1); flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                    <span>${note.name}.pdf</span>
+                                </div>
+                                <button class="file-preview-btn" data-type="pdf" data-id="${note.id}" title="Preview in browser" style="background: none; border: none; cursor: pointer; padding: 2px 6px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-secondary); opacity: 0.6; transition: opacity 0.1s; margin-left: 8px;">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary);"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </button>
+                            </div>
+                            <div class="file-item" data-type="pdf-onepage" data-id="${note.id}" style="display: flex; align-items: center; gap: 8px; justify-content: space-between; width: 100%;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #E28A36; fill: rgba(226, 138, 54, 0.1); flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                    <span>1-Page_${note.name}.pdf</span>
+                                </div>
+                                <button class="file-preview-btn" data-type="pdf-onepage" data-id="${note.id}" title="Preview in browser" style="background: none; border: none; cursor: pointer; padding: 2px 6px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-secondary); opacity: 0.6; transition: opacity 0.1s; margin-left: 8px;">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary);"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    notesList.appendChild(item);
+                });
+
+                // Bind folder expand/collapse toggle
+                document.querySelectorAll('.folder-header').forEach(header => {
+                    header.addEventListener('click', (e) => {
+                        // Ignore if clicked on actions or action buttons
+                        if (e.target.closest('.folder-actions') || e.target.closest('.action-icon')) return;
+                        
+                        const folderItem = header.closest('.folder-item');
+                        const contents = folderItem.querySelector('.folder-contents');
+                        const toggleIcon = header.querySelector('.folder-toggle');
+                        
+                        if (contents.style.display === 'none') {
+                            contents.style.display = 'flex';
+                            toggleIcon.innerHTML = folderOpenSVG;
+                        } else {
+                            contents.style.display = 'none';
+                            toggleIcon.innerHTML = folderClosedSVG;
+                        }
+                    });
+                });
+
+                // Bind nested file downloads on click
+                document.querySelectorAll('.file-item').forEach(fileItem => {
+                    fileItem.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const noteId = fileItem.getAttribute('data-id');
+                        const fileType = fileItem.getAttribute('data-type');
+                        if (fileItem.classList.contains('copy-btn')) {
+                            copyNoteTextToClipboard(noteId, fileItem);
+                        } else {
+                            downloadFileOnTheFly(noteId, fileType);
+                        }
+                    });
+                });
+
+                // Bind nested file preview clicks
+                document.querySelectorAll('.file-preview-btn').forEach(previewBtn => {
+                    previewBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const noteId = previewBtn.getAttribute('data-id');
+                        const fileType = previewBtn.getAttribute('data-type');
+                        previewFileOnTheFly(noteId, fileType);
+                    });
+                });
+
+                document.querySelectorAll('.rename-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openRenameModal(btn.getAttribute('data-id'));
+                    });
+                });
+
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteNoteFile(btn.getAttribute('data-id'));
+                    });
+                });
+            }
+
+            // Search notes
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.toLowerCase().trim();
+                const notes = getLibraryNotes();
+                const filtered = notes.filter(note => note.name.toLowerCase().includes(query));
+                renderNotes(filtered);
+            });
+
+            // --- AUDIO CAPTURE & RECORDING CYCLE ---
+            async function startSession() {
+                try {
+                    // Workaround: Chrome requires video to request tab audio
+                    const stream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true,
+                        audio: true
+                    });
+
+                    // Stop video track immediately to prevent recording screens or windows
+                    stream.getVideoTracks().forEach(track => {
+                        track.stop();
+                    });
+
+                    const audioTracks = stream.getAudioTracks();
+                    if (audioTracks.length === 0) {
+                        stream.getTracks().forEach(t => t.stop());
+                        await showCustomAlert("You must check the 'Share audio' or 'Share system audio' checkbox in the screen share dialog, otherwise audio cannot be captured!", "Audio Capture Error");
+                        return;
+                    }
+
+                    // Create stream containing only audio
+                    audioStream = new MediaStream(audioTracks);
+
+                    // Stop recording automatically if user clicks "Stop sharing" browser bar
+                    audioTracks[0].addEventListener('ended', () => {
+                        if (isRecording) {
+                            stopSession();
+                        }
+                    });
+
+                    // Reset variables
+                    isRecording = true;
+                    isPaused = false;
+                    activeUploads = 0;
+                    transcriptionText = "";
+                    lastTextLength = 0;
+                    accumulatedElapsed = 0;
+                    startTime = Date.now();
+                    lastRemainingRequests = null;
+                    lastLimitRequests = null;
+                    updateQuotaUI();
+
+                    // Set up Web Audio API visualizer
+                    setupVisualizer(audioStream);
+                    
+                    updateTranscriptDisplay();
+                    startTimer();
+                    startChunkRecording();
+                    updateStatusUI();
+
+                } catch (err) {
+                    console.error("Display media acquisition failed:", err);
+                    await showCustomAlert("Could not start audio capture. Please grant screen share permissions and check 'Share audio'.", "Audio Capture Failed");
+                }
+            }
+
+            function startTimer() {
+                startTime = Date.now();
+                timerInterval = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - startTime) / 1000) + accumulatedElapsed;
+                    timerDisplay.textContent = formatTime(elapsed);
+                }, 500);
+            }
+
+            function startChunkRecording() {
+                const durationSeconds = parseInt(chunkSlider.value) || 8;
+
+                function recordNextChunk() {
+                    if (!isRecording || isPaused) return;
+
+                    let recorder;
+                    try {
+                        recorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm;codecs=opus' });
+                    } catch (e) {
+                        console.warn("audio/webm;codecs=opus not supported, falling back to browser default mimeType.");
+                        recorder = new MediaRecorder(audioStream);
+                    }
+
+                    const chunkData = [];
+                    recorder.ondataavailable = (e) => {
+                        if (e.data && e.data.size > 0) {
+                            chunkData.push(e.data);
+                        }
+                    };
+
+                    recorder.onstop = async () => {
+                        if (chunkData.length > 0) {
+                            const blob = new Blob(chunkData, { type: recorder.mimeType || 'audio/webm' });
+                            if (isRecording || isSavingSession) {
+                                uploadChunk(blob);
+                            }
+                        }
+                        // Start next chunk immediately if we are still active and not paused
+                        if (isRecording && !isPaused) {
+                            recordNextChunk();
+                        }
+                    };
+
+                    recorder.start();
+                    activeChunkRecorder = recorder;
+
+                    // Schedule stop
+                    chunkTimeoutId = setTimeout(() => {
+                        if (recorder.state === 'recording') {
+                            recorder.stop();
+                        }
+                    }, durationSeconds * 1000);
+                }
+
+                recordNextChunk();
+            }
+
+            async function uploadChunk(blob) {
+                const baseUrl = backendUrlInput.value.trim().replace(/\/$/, '');
+                const url = `${baseUrl}/transcribe`;
+
+                const formData = new FormData();
+                formData.append('file', blob, 'chunk.webm'); // Explicit filename chunk.webm for format hinting
+
+                activeUploads++;
+                updateStatusUI();
+
+                const headers = {};
+                const userKey = groqKeyInput.value.trim();
+                if (userKey) {
+                    headers['Authorization'] = `Bearer ${userKey}`;
+                }
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: headers,
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const text = data.text;
+
+                    if (data.remaining_requests !== undefined && data.remaining_requests !== null) {
+                        lastRemainingRequests = data.remaining_requests;
+                    }
+                    if (data.limit_requests !== undefined && data.limit_requests !== null) {
+                        lastLimitRequests = data.limit_requests;
+                    }
+                    updateQuotaUI();
+
+                    if (text && !isHallucination(text)) {
+                        transcriptionText = mergeOverlappingText(transcriptionText, text);
+                        startTypewriterAnimation();
+                    }
+                } catch (err) {
+                    console.error("Chunk transcription failed:", err);
+                } finally {
+                    activeUploads--;
+                    updateStatusUI();
+                }
+            }
+
+            function pauseSession() {
+                if (!isRecording || isPaused) return;
+                isPaused = true;
+
+                // Stop timer accumulation
+                clearInterval(timerInterval);
+                accumulatedElapsed += Math.floor((Date.now() - startTime) / 1000);
+
+                // Cancel scheduled timeout and stop current recorder (forces final partial chunk upload)
+                if (chunkTimeoutId) {
+                    clearTimeout(chunkTimeoutId);
+                    chunkTimeoutId = null;
+                }
+                if (activeChunkRecorder && activeChunkRecorder.state === 'recording') {
+                    activeChunkRecorder.stop();
+                }
+
+                updateStatusUI();
+            }
+
+            function resumeSession() {
+                if (!isRecording || !isPaused) return;
+                isPaused = false;
+
+                // Restart timer and chunk recording
+                startTimer();
+                startChunkRecording();
+                updateStatusUI();
+            }
+
+            async function stopSession() {
+                if (!isRecording) return;
+                isSavingSession = true;
+                isRecording = false;
+
+                // Clear timer
+                clearInterval(timerInterval);
+                timerInterval = null;
+
+                // Clear chunk scheduling
+                if (chunkTimeoutId) {
+                    clearTimeout(chunkTimeoutId);
+                    chunkTimeoutId = null;
+                }
+                if (activeChunkRecorder && activeChunkRecorder.state === 'recording') {
+                    activeChunkRecorder.stop();
+                }
+
+                // Stop all tracks in audio stream to release system resources
+                if (audioStream) {
+                    audioStream.getTracks().forEach(t => t.stop());
+                    audioStream = null;
+                }
+
+                // Reset visualizer bars
+                resetVisualizer();
+
+                // Show AI active spinner overlay early
+                const processingOverlay = document.getElementById('processing-overlay');
+                if (processingOverlay) {
+                    processingOverlay.classList.add('active');
+                }
+
+                // Wait for all active uploads to complete
+                await new Promise((resolve) => {
+                    const checkInterval = setInterval(() => {
+                        if (activeUploads === 0) {
+                            clearInterval(checkInterval);
+                            resolve();
+                        }
+                    }, 100);
+                });
+
+                // Flush typewriter
+                flushTypewriter();
+
+                isSavingSession = false;
+
+                if (transcriptionText.trim()) {
+                    const baseUrl = backendUrlInput.value.trim().replace(/\/$/, '');
+                    const url = `${baseUrl}/summarize`;
+                    
+                    const headers = {
+                        'Content-Type': 'application/json'
+                    };
+                    const userKey = groqKeyInput.value.trim();
+                    if (userKey) {
+                        headers['Authorization'] = `Bearer ${userKey}`;
+                    }
+
+                    let notesContent = transcriptionText; // fallback to raw
+                    let notesTitle = "Untitled Note"; // fallback title
+                    let notesTldr = []; // fallback tldr
+                    let notesOnePageSummary = ""; // fallback/empty one-page summary
+                    try {
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: headers,
+                            body: JSON.stringify({ text: transcriptionText })
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.content) {
+                                notesContent = data.content;
+                            }
+                            if (data.title) {
+                                notesTitle = data.title;
+                            }
+                            if (data.tldr) {
+                                notesTldr = data.tldr;
+                            }
+                            if (data.one_page_summary) {
+                                notesOnePageSummary = data.one_page_summary;
+                            }
+                        } else {
+                            console.warn("AI formatting request failed. Falling back to raw transcript.");
+                        }
+                    } catch (err) {
+                        console.error("AI formatting failed:", err);
+                    } finally {
+                        if (processingOverlay) {
+                            processingOverlay.classList.remove('active');
+                        }
+                    }
+
+                    // Save and show export downloads
+                    const savedId = saveNoteToLibrary(currentSessionName, notesContent, notesTitle, notesTldr, notesOnePageSummary);
+                    showExportModal(savedId);
+                } else {
+                    if (processingOverlay) {
+                        processingOverlay.classList.remove('active');
+                    }
+                    await showCustomAlert("Session stopped, but no transcription text was captured.", "No Audio Captured");
+                    updateStatusUI();
+                }
+            }
+
+            // Bind Start Session Modal Buttons
+            confirmSaveBtn.onclick = async () => {
+                const sessionName = sessionNameInput.value.trim();
+                if (!sessionName) {
+                    await showCustomAlert("Please enter a session name!", "Session Name Required");
+                    return;
+                }
+                
+                const sessionNameCleaned = sessionName.replace(/[\/\\:*?"<>|]/g, '_'); // sanitize name
+                currentSessionName = sessionNameCleaned;
+                
+                // Hide modal and initiate audio acquisition
+                saveSessionModal.classList.remove('active');
+                startSession();
+            };
+
+            cancelSaveBtn.onclick = () => {
+                saveSessionModal.classList.remove('active');
+            };
+
+            closeSaveBtn.onclick = () => {
+                cancelSaveBtn.onclick();
+            };
+
+            // --- AUDIO VISUALIZER ---
+            let lastVisualizerRenderTime = 0;
+            const visualizerFrameInterval = 1000 / 30; // 30 FPS throttling
+
+            function setupVisualizer(stream) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                    const source = audioContext.createMediaStreamSource(stream);
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 64; 
+                    source.connect(analyser);
+                    
+                    const bufferLength = analyser.frequencyBinCount;
+                    dataArray = new Uint8Array(bufferLength);
+                    
+                    animateVisualizer(performance.now());
+                } catch (e) {
+                    console.error("Audio visualizer initialization failed:", e);
+                }
+            }
+
+            function animateVisualizer(timestamp) {
+                if (!isRecording) {
+                    resetVisualizer();
+                    return;
+                }
+
+                visualizerAnimFrameId = requestAnimationFrame(animateVisualizer);
+
+                // Throttle animation to 30 FPS
+                if (timestamp && timestamp - lastVisualizerRenderTime < visualizerFrameInterval) {
+                    return;
+                }
+                if (timestamp) {
+                    lastVisualizerRenderTime = timestamp;
+                }
+
+                if (analyser && dataArray) {
+                    analyser.getByteFrequencyData(dataArray);
+                    const step = Math.floor(dataArray.length / visualizerBars.length);
+                    
+                    visualizerBars.forEach((bar, idx) => {
+                        let val = dataArray[idx * step] || 0;
+                        if (isPaused) val = 0; // Flat line when paused
+
+                        const scale = 0.125 + (val / 255) * 0.875;
+                        bar.style.transform = `scaleY(${scale})`;
+                    });
+                }
+            }
+
+            function resetVisualizer() {
+                if (visualizerAnimFrameId) {
+                    cancelAnimationFrame(visualizerAnimFrameId);
+                    visualizerAnimFrameId = null;
+                }
+                visualizerBars.forEach(bar => {
+                    bar.style.transform = 'scaleY(0.125)';
+                });
+            }
+
+            // --- STATEFUL UI UPDATE ---
+            function updateStatusUI() {
+                // Settings enable/disable states
+                backendUrlInput.disabled = isRecording;
+                groqKeyInput.disabled = isRecording;
+                chunkSlider.disabled = isRecording;
+
+                // Configure control buttons state
+                if (isRecording) {
+                    startBtn.disabled = false;
+                    startBtn.innerHTML = 'Reset';
+                    startBtn.onclick = resetSession;
+                    startBtn.className = "btn btn-secondary btn-rounded";
+
+                    stopBtn.disabled = false;
+                    pauseBtn.disabled = false;
+                    visualizer.style.display = 'flex';
+
+                    if (isPaused) {
+                        statusBadge.className = "status-badge paused";
+                        statusText.textContent = "Recording Paused";
+                        pauseBtn.innerHTML = 'Resume';
+                        pauseBtn.onclick = resumeSession;
+                    } else if (activeUploads > 0) {
+                        statusBadge.className = "status-badge processing";
+                        statusText.textContent = "Transcribing...";
+                        pauseBtn.innerHTML = 'Pause';
+                        pauseBtn.onclick = pauseSession;
+                    } else {
+                        statusBadge.className = "status-badge recording";
+                        statusText.textContent = "Listening...";
+                        pauseBtn.innerHTML = 'Pause';
+                        pauseBtn.onclick = pauseSession;
+                    }
+                } else {
+                    startBtn.disabled = false;
+                    startBtn.innerHTML = 'Start Session';
+                    startBtn.onclick = () => {
+                        const date = new Date();
+                        const dateString = date.toISOString().substring(0, 10);
+                        const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).replace(/:/g, '-');
+                        sessionNameInput.value = `Study Session_${dateString}_${timeString}`;
+                        saveSessionModal.classList.add('active');
+                        sessionNameInput.focus();
+                    };
+                    startBtn.className = "btn btn-primary btn-rounded";
+
+                    stopBtn.disabled = true;
+                    pauseBtn.disabled = true;
+                    visualizer.style.display = 'none';
+
+                    statusBadge.className = "status-badge idle";
+                    statusText.textContent = "Ready to Record";
+                    pauseBtn.onclick = null;
+                    pauseBtn.innerHTML = 'Pause';
+                    timerDisplay.textContent = "00:00";
+                }
+            }
+
+            // --- AESTHETICAL CUSTOM DIALOG MODALS ---
+            function showCustomAlert(message, title = "Notice") {
+                return new Promise((resolve) => {
+                    const modal = document.getElementById('custom-dialog-modal');
+                    const titleEl = document.getElementById('dialog-title');
+                    const messageEl = document.getElementById('dialog-message');
+                    const confirmBtn = document.getElementById('dialog-confirm-btn');
+                    const cancelBtn = document.getElementById('dialog-cancel-btn');
+                    const closeBtn = document.getElementById('close-dialog-btn');
+
+                    titleEl.textContent = title;
+                    messageEl.textContent = message;
+                    cancelBtn.style.display = 'none';
+                    confirmBtn.textContent = 'OK';
+                    confirmBtn.className = "btn btn-primary";
+                    
+                    modal.classList.add('active');
+
+                    function cleanUp() {
+                        modal.classList.remove('active');
+                        confirmBtn.removeEventListener('click', onConfirm);
+                        closeBtn.removeEventListener('click', onClose);
+                    }
+
+                    function onConfirm() {
+                        cleanUp();
+                        resolve(true);
+                    }
+
+                    function onClose() {
+                        cleanUp();
+                        resolve(false);
+                    }
+
+                    confirmBtn.addEventListener('click', onConfirm);
+                    closeBtn.addEventListener('click', onClose);
+                });
+            }
+
+            function showCustomConfirm(message, title = "Confirm Action") {
+                return new Promise((resolve) => {
+                    const modal = document.getElementById('custom-dialog-modal');
+                    const titleEl = document.getElementById('dialog-title');
+                    const messageEl = document.getElementById('dialog-message');
+                    const confirmBtn = document.getElementById('dialog-confirm-btn');
+                    const cancelBtn = document.getElementById('dialog-cancel-btn');
+                    const closeBtn = document.getElementById('close-dialog-btn');
+
+                    titleEl.textContent = title;
+                    messageEl.textContent = message;
+                    cancelBtn.style.display = 'inline-block';
+                    confirmBtn.textContent = 'Yes, Proceed';
+                    confirmBtn.className = "btn btn-danger";
+                    
+                    modal.classList.add('active');
+
+                    function cleanUp() {
+                        modal.classList.remove('active');
+                        confirmBtn.removeEventListener('click', onConfirm);
+                        cancelBtn.removeEventListener('click', onCancel);
+                        closeBtn.removeEventListener('click', onCancel);
+                    }
+
+                    function onConfirm() {
+                        cleanUp();
+                        resolve(true);
+                    }
+
+                    function onCancel() {
+                        cleanUp();
+                        resolve(false);
+                    }
+
+                    confirmBtn.addEventListener('click', onConfirm);
+                    cancelBtn.addEventListener('click', onCancel);
+                    closeBtn.addEventListener('click', onCancel);
+                });
+            }
+
+            async function resetSession() {
+                if (await showCustomConfirm("Are you sure you want to discard this session? The text will not be saved.", "Discard Session")) {
+                    isRecording = false;
+                    isPaused = false;
+                    
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+
+                    if (chunkTimeoutId) {
+                        clearTimeout(chunkTimeoutId);
+                        chunkTimeoutId = null;
+                    }
+                    if (activeChunkRecorder && activeChunkRecorder.state === 'recording') {
+                        activeChunkRecorder.stop();
+                    }
+                    if (audioStream) {
+                        audioStream.getTracks().forEach(t => t.stop());
+                        audioStream = null;
+                    }
+                    
+                    transcriptionText = "";
+                    lastTextLength = 0;
+                    clearTypewriter();
+                    resetVisualizer();
+                    updateTranscriptDisplay();
+                    updateStatusUI();
+                }
+            }
+
+            let typewriterIntervalId = null;
+            let typedText = ""; // The text currently typed out in the UI
+
+            function clearTypewriter() {
+                if (typewriterIntervalId) {
+                    clearInterval(typewriterIntervalId);
+                    typewriterIntervalId = null;
+                }
+                typedText = "";
+            }
+
+            function flushTypewriter() {
+                if (typewriterIntervalId) {
+                    clearInterval(typewriterIntervalId);
+                    typewriterIntervalId = null;
+                }
+                typedText = transcriptionText;
+                renderTypedText();
+            }
+
+            function startTypewriterAnimation() {
+                if (typewriterIntervalId) return;
+
+                typewriterIntervalId = setInterval(() => {
+                    if (typedText.length >= transcriptionText.length) {
+                        clearInterval(typewriterIntervalId);
+                        typewriterIntervalId = null;
+                        return;
+                    }
+
+                    const currentWords = typedText.split(/\s+/).filter(Boolean);
+                    const targetWords = transcriptionText.split(/\s+/).filter(Boolean);
+
+                    if (currentWords.length < targetWords.length) {
+                        const nextWord = targetWords[currentWords.length];
+                        if (typedText.length === 0) {
+                            typedText = nextWord;
+                        } else {
+                            typedText += " " + nextWord;
+                        }
+                        renderTypedText();
+                    } else {
+                        typedText = transcriptionText;
+                        renderTypedText();
+                        clearInterval(typewriterIntervalId);
+                        typewriterIntervalId = null;
+                    }
+                }, 75);
+            }
+
+            function renderTypedText() {
+                if (typedText.trim().length > 0) {
+                    emptyState.style.display = 'none';
+                    let liveTextEl = transcriptDisplay.querySelector('.live-text-content');
+                    if (!liveTextEl) {
+                        transcriptDisplay.innerHTML = '';
+                        liveTextEl = document.createElement('div');
+                        liveTextEl.className = 'live-text-content';
+                        transcriptDisplay.appendChild(liveTextEl);
+                    }
+                    liveTextEl.textContent = typedText;
+                    transcriptDisplay.scrollTop = transcriptDisplay.scrollHeight;
+                } else {
+                    transcriptDisplay.innerHTML = '';
+                    transcriptDisplay.appendChild(emptyState);
+                    emptyState.style.display = 'flex';
+                    if (isRecording) {
+                        emptyState.querySelector('p').textContent = "Listening for audio... Text will appear shortly after the first chunk is transcribed.";
+                    } else {
+                        emptyState.querySelector('p').textContent = 'No recording active. Click "Start Session" and share your browser tab/system audio to begin transcribing.';
+                    }
+                }
+            }
+
+            function updateTranscriptDisplay() {
+                renderTypedText();
+            }
+
+            // --- EXPORT MODAL ---
+             function showExportModal(savedId) {
+                exportModal.classList.add('active');
+                
+                downloadPdf.onclick = (e) => {
+                    e.preventDefault();
+                    downloadFileOnTheFly(savedId, 'pdf');
+                };
+
+                if (downloadOnePagePdf) {
+                    downloadOnePagePdf.onclick = (e) => {
+                        e.preventDefault();
+                        downloadFileOnTheFly(savedId, 'pdf-onepage');
+                    };
+                }
+
+                document.querySelectorAll('.modal-preview-btn').forEach(btn => {
+                    btn.onclick = (e) => {
+                        e.preventDefault();
+                        const fileType = btn.getAttribute('data-type');
+                        previewFileOnTheFly(savedId, fileType);
+                    };
+                });
+            }
+
+            function downloadFileOnTheFly(noteId, fileType) {
+                const notes = getLibraryNotes();
+                const note = notes.find(n => n.id.toString() === noteId.toString());
+                if (!note) return;
+
+                const filenameBase = note.name;
+                let blob;
+                let filename;
+
+                if (fileType === 'pdf') {
+                    blob = generatePDFBlob(note.aiTitle || note.name, note.tldr || [], note.content);
+                    filename = `${filenameBase}.pdf`;
+                } else if (fileType === 'pdf-onepage') {
+                    blob = generateOnePagePDFBlob(note.aiTitle || note.name, note.onePageSummary || note.content);
+                    filename = `1-Page_${filenameBase}.pdf`;
+                }
+
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            }
+
+            function previewFileOnTheFly(noteId, fileType) {
+                const notes = getLibraryNotes();
+                const note = notes.find(n => n.id.toString() === noteId.toString());
+                if (!note) return;
+
+                let blob;
+                if (fileType === 'pdf') {
+                    blob = generatePDFBlob(note.aiTitle || note.name, note.tldr || [], note.content);
+                } else if (fileType === 'pdf-onepage') {
+                    blob = generateOnePagePDFBlob(note.aiTitle || note.name, note.onePageSummary || note.content);
+                }
+
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                }
+            }
+
+            function generatePDFBlob(title, tldr, content) {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                const marginLeft = 20;
+                const marginRight = 20;
+                const pageWidth = doc.internal.pageSize.width;
+                const pageHeight = doc.internal.pageSize.height;
+                const contentWidth = pageWidth - marginLeft - marginRight;
+
+                let y = 22;
+
+                function stripUnsupportedChars(str) {
+                    return str.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F\u200D]/gu, '').trim();
+                }
+
+                function checkPageBreak(neededHeight) {
+                    if (y + neededHeight > pageHeight - 22) {
+                        doc.addPage();
+                        y = 22;
+                        addRunningFooter();
+                    }
+                }
+
+                function addRunningFooter() {
+                    const pageNum = doc.internal.getCurrentPageInfo().pageNumber;
+                    if (pageNum === 1) return; // no footer on TOC page
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(8.5);
+                    doc.setTextColor(150);
+                    doc.text(stripUnsupportedChars(title), marginLeft, pageHeight - 10);
+                    const pageLabel = `Page ${pageNum}`;
+                    doc.text(pageLabel, pageWidth - marginRight - doc.getTextWidth(pageLabel), pageHeight - 10);
+                    doc.setTextColor(0);
+                }
+
+                // ============ INLINE RENDERER ============
+                function renderInlineLine(rawLine, fontSize, baseStyle, lineHeight, indent = 0, rightPad = 0) {
+                    rawLine = stripUnsupportedChars(rawLine);
+                    doc.setFontSize(fontSize);
+                    const parts = rawLine.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
+
+                    const tokens = [];
+                    parts.forEach(part => {
+                        const isBold = part.startsWith('**') && part.endsWith('**');
+                        const isCode = part.startsWith('`') && part.endsWith('`') && !isBold;
+                        const text = isBold ? part.slice(2, -2) : isCode ? part.slice(1, -1) : part;
+                        text.split(/(\s+)/).forEach(word => {
+                            if (word.length > 0) tokens.push({ text: word, bold: isBold, code: isCode });
+                        });
+                    });
+
+                    let x = marginLeft + indent;
+                    const maxX = pageWidth - marginRight - rightPad;
+                    checkPageBreak(lineHeight);
+
+                    tokens.forEach(token => {
+                        doc.setFont(token.code ? "courier" : "helvetica", token.bold ? "bold" : "normal");
+                        const w = doc.getTextWidth(token.text);
+                        if (x + w > maxX && token.text.trim() !== '') {
+                            y += lineHeight;
+                            checkPageBreak(lineHeight);
+                            x = marginLeft + indent;
+                        }
+                        if (token.code) {
+                            doc.setFillColor(240, 240, 242);
+                            doc.rect(x - 0.5, y - 3.5, w + 1, 4.5, 'F');
+                        }
+                        doc.text(token.text, x, y);
+                        x += w;
+                    });
+                    y += lineHeight;
+                }
+
+                // ============ BLOCK RENDERERS ============
+                function renderCodeBlock(codeLines) {
+                    doc.setFont("courier", "normal");
+                    doc.setFontSize(9.5);
+                    const lineH = 5;
+                    const padding = 4;
+                    const innerWidth = contentWidth - padding * 2;
+
+                    const wrapped = [];
+                    codeLines.forEach(l => {
+                        const cleanL = stripUnsupportedChars(l);
+                        const w = doc.splitTextToSize(cleanL === '' ? ' ' : cleanL, innerWidth);
+                        wrapped.push(...w);
+                    });
+
+                    const boxHeight = wrapped.length * lineH + padding * 2;
+                    checkPageBreak(boxHeight + 4);
+                    y += 2;
+                    doc.setFillColor(245, 245, 247);
+                    doc.setDrawColor(225, 225, 228);
+                    doc.roundedRect(marginLeft, y, contentWidth, boxHeight, 2, 2, 'FD');
+
+                    let cy = y + padding + 3;
+                    wrapped.forEach(l => {
+                        doc.text(l, marginLeft + padding, cy);
+                        cy += lineH;
+                    });
+                    y += boxHeight + 6;
+                }
+
+                // Color scheme per highlight category
+                const BOX_STYLES = {
+                    "key insight": { bg: [255, 248, 230], accent: [240, 180, 41] },
+                    "definition": { bg: [230, 240, 255], accent: [70, 130, 220] },
+                    "common mistake": { bg: [255, 235, 235], accent: [210, 80, 80] },
+                    "action item": { bg: [232, 250, 235], accent: [60, 170, 100] },
+                    "default": { bg: [240, 240, 245], accent: [130, 130, 150] }
+                };
+
+                function getBoxStyle(firstLine) {
+                    const m = firstLine.match(/\*\*([^*:]+):\*\*/);
+                    if (m) {
+                        const key = m[1].trim().toLowerCase();
+                        if (BOX_STYLES[key]) return BOX_STYLES[key];
+                    }
+                    return BOX_STYLES.default;
+                }
+
+                function renderHighlightBlock(quoteLines) {
+                    const fontSize = 10.5;
+                    const lineH = 5.5;
+                    const padding = 5;
+                    const textIndent = padding + 9; // clears the accent bar + icon circle
+                    const style = getBoxStyle(quoteLines[0] || '');
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(fontSize);
+
+                    const innerWidth = contentWidth - textIndent - padding;
+                    let totalLines = 0;
+                    const plainStripped = quoteLines.map(l => stripUnsupportedChars(l.replace(/\*\*/g, '').replace(/`/g, '')));
+                    plainStripped.forEach(l => {
+                        totalLines += doc.splitTextToSize(l || ' ', innerWidth).length;
+                    });
+
+                    const boxHeight = totalLines * lineH + padding * 2;
+                    checkPageBreak(boxHeight + 4);
+                    y += 2;
+
+                    doc.setFillColor(...style.bg);
+                    doc.roundedRect(marginLeft, y, contentWidth, boxHeight, 2, 2, 'F');
+                    doc.setFillColor(...style.accent);
+                    doc.rect(marginLeft, y, 2.2, boxHeight, 'F');
+                    doc.circle(marginLeft + padding, y + padding + 1.5, 1.6, 'F');
+
+                    y += padding + 2;
+                    quoteLines.forEach(line => {
+                        renderInlineLine(line, fontSize, "normal", lineH, textIndent, padding);
+                    });
+                    y += padding - 2;
+                }
+
+                function renderTldrBox(bullets) {
+                    if (!bullets || bullets.length === 0) return;
+                    const fontSize = 10.5;
+                    const lineH = 5.5;
+                    const padding = 6;
+                    const labelHeight = 8;
+
+                    const innerWidth = contentWidth - padding * 2 - 6;
+                    let totalLines = 0;
+                    bullets.forEach(b => {
+                        const cleanB = stripUnsupportedChars(b);
+                        totalLines += doc.splitTextToSize(cleanB, innerWidth).length;
+                    });
+
+                    const boxHeight = labelHeight + totalLines * lineH + padding * 2;
+                    checkPageBreak(boxHeight + 6);
+                    y += 4;
+
+                    doc.setFillColor(235, 240, 250);
+                    doc.setDrawColor(190, 205, 230);
+                    doc.roundedRect(marginLeft, y, contentWidth, boxHeight, 2.5, 2.5, 'FD');
+
+                    doc.setFont("helvetica", "bold");
+                    doc.setFontSize(12);
+                    doc.setTextColor(40, 70, 140);
+                    doc.text("TL;DR", marginLeft + padding, y + padding + 3);
+                    doc.setTextColor(0);
+
+                    y += padding + labelHeight;
+                    bullets.forEach(b => {
+                        doc.setFont("helvetica", "normal");
+                        doc.setFontSize(fontSize);
+                        doc.text("•", marginLeft + padding + 4, y);
+                        renderInlineLine(b, fontSize, "normal", lineH, padding + 10, padding);
+                    });
+                    y += padding - 2;
+                }
+
+                // ============ HEADING SCAN (for TOC, ignores code fences) ============
+                function scanHeadings(text) {
+                    const lines = text.split('\n');
+                    let inCode = false;
+                    const out = [];
+                    lines.forEach(line => {
+                        const t = line.trim();
+                        if (t.startsWith('```')) { inCode = !inCode; return; }
+                        if (inCode) return;
+                        if (t.startsWith('## ')) out.push({ level: 2, text: t.slice(3).replace(/\*\*/g, '') });
+                        else if (t.startsWith('# ')) out.push({ level: 1, text: t.slice(2).replace(/\*\*/g, '') });
+                    });
+                    return out;
+                }
+
+                const headings = scanHeadings(content);
+
+                // ============ PAGE 1: TITLE + READ TIME + TL;DR + TOC ============
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(20);
+                doc.splitTextToSize(stripUnsupportedChars(title), contentWidth).forEach(line => {
+                    doc.text(line, marginLeft, y);
+                    y += 9;
+                });
+
+                const wordCount = content.split(/\s+/).filter(Boolean).length;
+                const readMins = Math.max(1, Math.round(wordCount / 200));
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9.5);
+                doc.setTextColor(130);
+                doc.text(`${readMins} min read`, marginLeft, y + 4);
+                doc.setTextColor(0);
+                y += 12;
+
+                renderTldrBox(tldr);
+
+                y += 6;
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(13);
+                doc.text("Contents", marginLeft, y);
+                y += 9;
+
+                const tocEntries = [];
+                headings.forEach(h => {
+                    const indent = h.level === 1 ? 0 : 7;
+                    const fs = h.level === 1 ? 11.5 : 10.5;
+                    doc.setFont("helvetica", h.level === 1 ? "bold" : "normal");
+                    doc.setFontSize(fs);
+                    const cleanHText = stripUnsupportedChars(h.text);
+                    const lineText = doc.splitTextToSize(cleanHText, contentWidth - indent - 18)[0] || cleanHText;
+                    doc.setTextColor(45, 85, 170);
+                    doc.text(lineText, marginLeft + indent, y);
+                    doc.setTextColor(0);
+                    tocEntries.push({ text: lineText, x: marginLeft + indent, y: y, fontSize: fs, bold: h.level === 1 });
+                    y += 7.5;
+                });
+
+                // Force body content onto its own page so page numbers are predictable
+                doc.addPage();
+                y = 22;
+                addRunningFooter();
+
+                // ============ BODY CONTENT (block-level parser) ============
+                const lines = content.split('\n');
+                let i = 0;
+                let headingPointer = 0;
+
+                while (i < lines.length) {
+                    const raw = lines[i];
+                    const trimmed = raw.trim();
+
+                    if (trimmed === '') { y += 3; i++; continue; }
+
+                    if (trimmed.startsWith('```')) {
+                        const codeLines = [];
+                        i++;
+                        while (i < lines.length && !lines[i].trim().startsWith('```')) { codeLines.push(lines[i]); i++; }
+                        i++;
+                        renderCodeBlock(codeLines);
+                        continue;
+                    }
+
+                    if (trimmed.startsWith('>')) {
+                        const quoteLines = [];
+                        while (i < lines.length && lines[i].trim().startsWith('>')) {
+                            quoteLines.push(lines[i].trim().replace(/^>\s?/, ''));
+                            i++;
+                        }
+                        renderHighlightBlock(quoteLines);
+                        continue;
+                    }
+
+                    if (trimmed.startsWith('### ')) {
+                        checkPageBreak(10); y += 3;
+                        renderInlineLine(trimmed.slice(4), 13, "bold", 7);
+                        y += 2; i++; continue;
+                    }
+                    if (trimmed.startsWith('## ') || trimmed.startsWith('# ')) {
+                        const isH1 = trimmed.startsWith('# ');
+                        checkPageBreak(isH1 ? 14 : 12);
+                        y += isH1 ? 6 : 5;
+                        const pageAtHeading = doc.internal.getCurrentPageInfo().pageNumber;
+                        const yAtHeading = y;
+                        renderInlineLine(trimmed.slice(isH1 ? 2 : 3), isH1 ? 17 : 15, "bold", isH1 ? 9 : 8);
+                        y += 3;
+                        if (tocEntries[headingPointer]) {
+                            tocEntries[headingPointer].targetPage = pageAtHeading;
+                            tocEntries[headingPointer].targetY = yAtHeading;
+                        }
+                        headingPointer++;
+                        i++; continue;
+                    }
+
+                    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+                        checkPageBreak(7);
+                        doc.setFont("helvetica", "normal");
+                        doc.setFontSize(11);
+                        doc.text('•', marginLeft + 6, y);
+                        renderInlineLine(trimmed.slice(2), 11, "normal", 6, 12);
+                        i++; continue;
+                    }
+
+                    renderInlineLine(trimmed, 11, "normal", 6);
+                    i++;
+                }
+
+                // ============ GO BACK: fill in TOC page numbers + clickable links ============
+                doc.setPage(1);
+                tocEntries.forEach(entry => {
+                    if (!entry.targetPage) return;
+                    doc.setFont("helvetica", entry.bold ? "bold" : "normal");
+                    doc.setFontSize(entry.fontSize);
+
+                    const pageLabel = String(entry.targetPage);
+                    const pw = doc.getTextWidth(pageLabel);
+                    const textW = doc.getTextWidth(entry.text);
+
+                    // dotted leader
+                    doc.setTextColor(190);
+                    let dotX = entry.x + textW + 3;
+                    const dotEndX = pageWidth - marginRight - pw - 3;
+                    doc.setFontSize(entry.fontSize);
+                    while (dotX < dotEndX) { doc.text('.', dotX, entry.y); dotX += 3; }
+
+                    // page number
+                    doc.setTextColor(120);
+                    doc.text(pageLabel, pageWidth - marginRight - pw, entry.y);
+                    doc.setTextColor(0);
+
+                    // clickable area over the whole line
+                    doc.link(marginLeft, entry.y - 4.5, contentWidth, 6.5, { pageNumber: entry.targetPage });
+                });
+
+                return doc.output('blob');
+            }
+
+            function generateOnePagePDFBlob(title, content) {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                const marginLeft = 20;
+                const marginRight = 20;
+                const pageWidth = doc.internal.pageSize.width;
+                const pageHeight = doc.internal.pageSize.height;
+                const contentWidth = pageWidth - marginLeft - marginRight;
+
+                let y = 20;
+
+                function stripUnsupportedChars(str) {
+                    return str.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F\u200D]/gu, '').trim();
+                }
+
+                // Inline renderer
+                function renderInlineLine(rawLine, fontSize, baseStyle, lineHeight, indent = 0, rightPad = 0) {
+                    rawLine = stripUnsupportedChars(rawLine);
+                    doc.setFontSize(fontSize);
+                    const parts = rawLine.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
+
+                    const tokens = [];
+                    parts.forEach(part => {
+                        const isBold = part.startsWith('**') && part.endsWith('**');
+                        const isCode = part.startsWith('`') && part.endsWith('`') && !isBold;
+                        const text = isBold ? part.slice(2, -2) : isCode ? part.slice(1, -1) : part;
+                        text.split(/(\s+)/).forEach(word => {
+                            if (word.length > 0) tokens.push({ text: word, bold: isBold, code: isCode });
+                        });
+                    });
+
+                    let x = marginLeft + indent;
+                    const maxX = pageWidth - marginRight - rightPad;
+
+                    tokens.forEach(token => {
+                        doc.setFont(token.code ? "courier" : "helvetica", token.bold ? "bold" : "normal");
+                        const w = doc.getTextWidth(token.text);
+                        if (x + w > maxX && token.text.trim() !== '') {
+                            y += lineHeight;
+                            x = marginLeft + indent;
+                        }
+                        if (token.code) {
+                            doc.setFillColor(240, 240, 242);
+                            doc.rect(x - 0.5, y - 3.5, w + 1, 4.5, 'F');
+                        }
+                        doc.text(token.text, x, y);
+                        x += w;
+                    });
+                    y += lineHeight;
+                }
+
+                // Highlight block renderer
+                const BOX_STYLES = {
+                    "key insight": { bg: [255, 248, 230], accent: [240, 180, 41] },
+                    "definition": { bg: [230, 240, 255], accent: [70, 130, 220] },
+                    "common mistake": { bg: [255, 235, 235], accent: [210, 80, 80] },
+                    "action item": { bg: [232, 250, 235], accent: [60, 170, 100] },
+                    "default": { bg: [240, 240, 245], accent: [130, 130, 150] }
+                };
+
+                function getBoxStyle(firstLine) {
+                    const m = firstLine.match(/\*\*([^*:]+):\*\*/);
+                    if (m) {
+                        const key = m[1].trim().toLowerCase();
+                        if (BOX_STYLES[key]) return BOX_STYLES[key];
+                    }
+                    return BOX_STYLES.default;
+                }
+
+                function renderHighlightBlock(quoteLines) {
+                    const fontSize = 10;
+                    const lineH = 5;
+                    const padding = 4;
+                    const textIndent = padding + 9;
+                    const style = getBoxStyle(quoteLines[0] || '');
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(fontSize);
+
+                    const innerWidth = contentWidth - textIndent - padding;
+                    let totalLines = 0;
+                    const plainStripped = quoteLines.map(l => stripUnsupportedChars(l.replace(/\*\*/g, '').replace(/`/g, '')));
+                    plainStripped.forEach(l => {
+                        totalLines += doc.splitTextToSize(l || ' ', innerWidth).length;
+                    });
+
+                    const boxHeight = totalLines * lineH + padding * 2;
+                    
+                    y += 2;
+                    doc.setFillColor(...style.bg);
+                    doc.roundedRect(marginLeft, y, contentWidth, boxHeight, 2, 2, 'F');
+                    doc.setFillColor(...style.accent);
+                    doc.rect(marginLeft, y, 2.2, boxHeight, 'F');
+                    doc.circle(marginLeft + padding, y + padding + 1.5, 1.6, 'F');
+
+                    y += padding + 2;
+                    quoteLines.forEach(line => {
+                        renderInlineLine(line, fontSize, "normal", lineH, textIndent, padding);
+                    });
+                    y += padding - 2;
+                }
+
+                // Render Title
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(18);
+                doc.splitTextToSize(stripUnsupportedChars(title), contentWidth).forEach(line => {
+                    doc.text(line, marginLeft, y);
+                    y += 8;
+                });
+                y += 6;
+
+                // Render Content
+                const lines = content.split('\n');
+                let i = 0;
+                while (i < lines.length) {
+                    const raw = lines[i];
+                    const trimmed = raw.trim();
+
+                    if (trimmed === '') { y += 2.5; i++; continue; }
+
+                    if (trimmed.startsWith('>')) {
+                        const quoteLines = [];
+                        while (i < lines.length && lines[i].trim().startsWith('>')) {
+                            quoteLines.push(lines[i].trim().replace(/^>\s?/, ''));
+                            i++;
+                        }
+                        renderHighlightBlock(quoteLines);
+                        continue;
+                    }
+
+                    if (trimmed.startsWith('### ')) {
+                        y += 2;
+                        renderInlineLine(trimmed.slice(4), 12, "bold", 6.5);
+                        y += 1.5; i++; continue;
+                    }
+                    if (trimmed.startsWith('## ') || trimmed.startsWith('# ')) {
+                        const isH1 = trimmed.startsWith('# ');
+                        y += isH1 ? 4 : 3.5;
+                        renderInlineLine(trimmed.slice(isH1 ? 2 : 3), isH1 ? 15 : 13.5, "bold", isH1 ? 8 : 7);
+                        y += 2; i++; continue;
+                    }
+
+                    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+                        doc.setFont("helvetica", "normal");
+                        doc.setFontSize(10);
+                        doc.text('•', marginLeft + 6, y);
+                        renderInlineLine(trimmed.slice(2), 10, "normal", 5.5, 12);
+                        i++; continue;
+                    }
+
+                    renderInlineLine(trimmed, 10, "normal", 5.5);
+                    i++;
+                }
+
+                return doc.output('blob');
+            }
+
+            function markdownToHtml(markdown, titleText) {
+                const lines = markdown.split('\n');
+                let html = `<h1 style="font-family:Arial,sans-serif;">${escapeHtml(titleText)}</h1>`;
+                let i = 0;
+                let inList = false;
+
+                function escapeHtml(str) {
+                    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                }
+
+                function inlineFormat(text) {
+                    text = escapeHtml(text);
+                    text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                    text = text.replace(/`([^`]+)`/g, '<code style="background:#f0f0f2;padding:1px 4px;border-radius:3px;font-family:monospace;">$1</code>');
+                    return text;
+                }
+
+                function closeListIfOpen() {
+                    if (inList) { html += '</ul>'; inList = false; }
+                }
+
+                while (i < lines.length) {
+                    const raw = lines[i];
+                    const trimmed = raw.trim();
+
+                    if (trimmed === '') { closeListIfOpen(); i++; continue; }
+
+                    if (trimmed.startsWith('```')) {
+                        closeListIfOpen();
+                        const codeLines = [];
+                        i++;
+                        while (i < lines.length && !lines[i].trim().startsWith('```')) { codeLines.push(lines[i]); i++; }
+                        i++;
+                        html += `<pre style="background:#f5f5f7;padding:10px;border-radius:4px;font-family:monospace;font-size:13px;white-space:pre-wrap;">${escapeHtml(codeLines.join('\n'))}</pre>`;
+                        continue;
+                    }
+
+                    if (trimmed.startsWith('>')) {
+                        closeListIfOpen();
+                        const quoteLines = [];
+                        while (i < lines.length && lines[i].trim().startsWith('>')) {
+                            quoteLines.push(lines[i].trim().replace(/^>\s?/, ''));
+                            i++;
+                        }
+                        const firstLine = quoteLines[0] || '';
+                        let borderLeftColor = '#f0b429';
+                        let bg = '#fff8e6';
+                        if (firstLine.includes('**Key Insight:**')) {
+                            borderLeftColor = '#f0b429'; bg = '#fff8e6';
+                        } else if (firstLine.includes('**Definition:**')) {
+                            borderLeftColor = '#4682dc'; bg = '#e6f0ff';
+                        } else if (firstLine.includes('**Common Mistake:**')) {
+                            borderLeftColor = '#d25050'; bg = '#ffebeb';
+                        } else if (firstLine.includes('**Action Item:**')) {
+                            borderLeftColor = '#3caa64'; bg = '#e8fab5';
+                        }
+                        html += `<blockquote style="border-left:4px solid ${borderLeftColor};background:${bg};padding:8px 14px;margin:10px 0;">${quoteLines.map(inlineFormat).join('<br>')}</blockquote>`;
+                        continue;
+                    }
+
+                    if (trimmed.startsWith('### ')) { closeListIfOpen(); html += `<h3>${inlineFormat(trimmed.slice(4))}</h3>`; i++; continue; }
+                    if (trimmed.startsWith('## ')) { closeListIfOpen(); html += `<h2>${inlineFormat(trimmed.slice(3))}</h2>`; i++; continue; }
+                    if (trimmed.startsWith('# ')) { closeListIfOpen(); html += `<h2>${inlineFormat(trimmed.slice(2))}</h2>`; i++; continue; }
+
+                    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+                        if (!inList) { html += '<ul>'; inList = true; }
+                        html += `<li>${inlineFormat(trimmed.slice(2))}</li>`;
+                        i++; continue;
+                    }
+
+                    closeListIfOpen();
+                    html += `<p>${inlineFormat(trimmed)}</p>`;
+                    i++;
+                }
+                closeListIfOpen();
+                return html;
+            }
+
+            async function copyNoteTextToClipboard(noteId, element = null) {
+                const notes = getLibraryNotes();
+                const note = notes.find(n => n.id.toString() === noteId.toString());
+                if (!note) return;
+
+                const titleText = note.aiTitle || note.name;
+                const markdownContent = note.content;
+
+                try {
+                    const html = markdownToHtml(markdownContent, titleText);
+                    const plain = `${titleText}\n\n${markdownContent}`;
+
+                    const item = new ClipboardItem({
+                        'text/html': new Blob([html], { type: 'text/html' }),
+                        'text/plain': new Blob([plain], { type: 'text/plain' })
+                    });
+                    await navigator.clipboard.write([item]);
+
+                    if (element) {
+                        const originalHTML = element.innerHTML;
+                        if (element.classList.contains('file-item')) {
+                            element.innerHTML = "✓ Copied!";
+                            element.style.color = "var(--accent-sage-hover)";
+                        } else {
+                            const label = element.querySelector('.export-label');
+                            if (label) label.textContent = "Copied! ✓";
+                        }
+                        setTimeout(() => {
+                            element.innerHTML = originalHTML;
+                            element.style.color = "";
+                        }, 1500);
+                    } else {
+                        showCustomAlert("Notes copied to clipboard!", "Copied Successfully");
+                    }
+                } catch (err) {
+                    console.error('Copy failed:', err);
+                    try {
+                        await navigator.clipboard.writeText(markdownContent);
+                        if (element) {
+                            const originalHTML = element.innerHTML;
+                            if (element.classList.contains('file-item')) {
+                                element.innerHTML = "✓ Copied!";
+                                element.style.color = "var(--accent-sage-hover)";
+                            } else {
+                                const label = element.querySelector('.export-label');
+                                if (label) label.textContent = "Copied! ✓";
+                            }
+                            setTimeout(() => {
+                                element.innerHTML = originalHTML;
+                                element.style.color = "";
+                            }, 1500);
+                        } else {
+                            showCustomAlert("Notes copied to clipboard (plain text)!", "Copied Successfully");
+                        }
+                    } catch (fallbackErr) {
+                        console.error('Plain text fallback also failed:', fallbackErr);
+                    }
+                }
+            }
+
+            function saveNoteToLibrary(name, content, aiTitle = "", tldr = [], onePageSummary = "") {
+                const notes = getLibraryNotes();
+                const timestamp = Date.now();
+                const sizeBytes = new Blob([content]).size;
+                const sizeKB = (sizeBytes / 1024).toFixed(1) + ' KB';
+                const dateStr = new Date().toISOString().replace('T', ' ').substring(0, 16);
+                
+                const newNote = {
+                    id: timestamp,
+                    name: name,
+                    content: content,
+                    onePageSummary: onePageSummary,
+                    aiTitle: aiTitle || name,
+                    tldr: tldr,
+                    size: sizeKB,
+                    date: dateStr
+                };
+                 
+                 notes.unshift(newNote);
+                 saveLibraryNotes(notes);
+                 loadNotesList();
+                 return timestamp;
+             }
+
+             closeModalBtn.onclick = () => {
+                 exportModal.classList.remove('active');
+                 
+                 // Clear session data after files are downloaded or dismissed
+                 transcriptionText = "";
+                 clearTypewriter();
+                 updateTranscriptDisplay();
+                 updateStatusUI();
+             };
+
+            // --- RENAME MODAL ---
+            function openRenameModal(noteId) {
+                const notes = getLibraryNotes();
+                const note = notes.find(n => n.id.toString() === noteId.toString());
+                if (!note) return;
+
+                oldFilenameHidden.value = note.id;
+                newFilenameInput.value = note.name;
+                
+                renameModal.classList.add('active');
+                newFilenameInput.focus();
+            }
+
+            function closeRenameModal() {
+                renameModal.classList.remove('active');
+            }
+
+            closeRenameBtn.onclick = closeRenameModal;
+            cancelRenameBtn.onclick = closeRenameModal;
+
+            saveRenameBtn.onclick = async () => {
+                const noteId = oldFilenameHidden.value;
+                const newBaseName = newFilenameInput.value.trim();
+
+                if (!newBaseName) {
+                    await showCustomAlert("Folder name cannot be empty!", "Empty Folder Name");
+                    return;
+                }
+
+                const notes = getLibraryNotes();
+                const note = notes.find(n => n.id.toString() === noteId.toString());
+                if (note) {
+                    note.name = newBaseName.replace(/[\/\\:*?"<>|]/g, '_'); // sanitize name
+                    saveLibraryNotes(notes);
+                    closeRenameModal();
+                    loadNotesList();
+                }
+            };
+
+            // --- DELETE NOTE ---
+            async function deleteNoteFile(noteId) {
+                if (await showCustomConfirm("Are you sure you want to permanently delete this study session folder and all its files? This cannot be undone.", "Delete Study Session")) {
+                    let notes = getLibraryNotes();
+                    notes = notes.filter(n => n.id.toString() !== noteId.toString());
+                    saveLibraryNotes(notes);
+                    loadNotesList();
+                }
+            }
+
+            // --- PORTED PY AUDIO UTILS ---
+            const HALLUCINATION_PHRASES = new Set([
+                "thank you for watching",
+                "thanks for watching",
+                "please subscribe",
+                "like and subscribe",
+                "subscribe to my channel",
+                "you",
+                "bye bye",
+                "go to my website",
+                "watch my other videos",
+                "see you next time",
+                "hello",
+                "thanks",
+                "thank you",
+                "subscribe"
+            ]);
+
+            function isHallucination(text) {
+                if (!text) return true;
+                const cleanText = text.trim().toLowerCase().replace(/^[.,?!;:()"'`\s]+|[.,?!;:()"'`\s]+$/g, '');
+                if (!cleanText || cleanText.length < 3) return true;
+                if (HALLUCINATION_PHRASES.has(cleanText)) return true;
+
+                const words = cleanText.split(/\s+/);
+                if (words.length >= 4) {
+                    const uniqueWords = new Set(words);
+                    if (uniqueWords.size <= 2) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function mergeOverlappingText(existingText, newText) {
+                if (!existingText) return newText;
+                if (!newText) return existingText;
+
+                const existingWords = existingText.split(/\s+/);
+                const newWords = newText.split(/\s+/);
+
+                const maxOverlap = Math.min(existingWords.length, newWords.length, 15);
+                for (let overlap = maxOverlap; overlap > 0; overlap--) {
+                    const existingSuffix = existingWords.slice(-overlap);
+                    const newPrefix = newWords.slice(0, overlap);
+
+                    const cleanSuffix = existingSuffix.map(w => w.toLowerCase().replace(/^[.,?!;:()"'`\s]+|[.,?!;:()"'`\s]+$/g, ''));
+                    const cleanPrefix = newPrefix.map(w => w.toLowerCase().replace(/^[.,?!;:()"'`\s]+|[.,?!;:()"'`\s]+$/g, ''));
+
+                    if (JSON.stringify(cleanSuffix) === JSON.stringify(cleanPrefix)) {
+                        return existingText + " " + newWords.slice(overlap).join(" ");
+                    }
+                }
+                return existingText + " " + newText;
+            }
+
+            // Initial load
+            stopBtn.onclick = stopSession;
+            loadNotesList();
+            updateStatusUI();
+        });
+    </script>
+</body>
+</html>
